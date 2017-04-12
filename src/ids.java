@@ -57,7 +57,7 @@ public class ids {
         // Used by the PCAP library to process the packet capture
         final StringBuilder errbuf = new StringBuilder();
 
-        // Open the packet capture which is passed as the first command line parameter
+        // Open the packet capture which is passed as the second command line parameter
         final Pcap pcap = Pcap.openOffline(args[1], errbuf);
 
         if (pcap == null) {
@@ -65,24 +65,20 @@ public class ids {
             return;
         }
 
-        // We are only interested in packets with TCP and IP headers
-        //final Tcp tcp = new Tcp();
+        Tcp tcp = new Tcp();
+        Udp udp = new Udp();
         final PcapPacket packet = new PcapPacket(JMemory.POINTER);
-        //Payload payload = new Payload();
+
+
 
         // Iterate through all packets in the capture
         while (pcap.nextEx(packet) == Pcap.NEXT_EX_OK) {
             // Check the packet headers
             if (hashmap.containsKey("proto")) {
                 if (hashmap.get("proto").get(0).toString().equals("tcp")) {
-                    Tcp tcp = new Tcp();
-                    //useProtocol((Protocol) tcp);
 
                 } else {
-                    Udp udp = new Udp();
                 }
-
-
             }
 
             //System.out.println(packet.toString());
@@ -122,22 +118,18 @@ public class ids {
 
         //49204c6f7665204a617661 split into two characters 49, 20, 4c...
         for (int i = 0; i < hex.length() - 1; i += 2) {
-
             //grab the hex in pairs
             String output = hex.substring(i, (i + 2));
             //convert hex to decimal
             int decimal = Integer.parseInt(output, 16);
             //convert the decimal to character
             sb.append((char) decimal);
-
             temp.append(decimal);
         }
-        //System.out.println("Decimal : " + temp.toString());
-
         return sb.toString();
     }
 
-    /*public static void useProtocol(Protocol protocol) {
+    public static Boolean checkPayload(PcapPacket packet) {
         JBuffer storage = new JBuffer(JMemory.Type.POINTER);
         JBuffer payload = protocol.peerPayloadTo(storage);
         //System.out.println(payload.toHexdump());
@@ -148,5 +140,5 @@ public class ids {
                 System.out.println(convertHexToString(hexString));
             }
         }
-    }*/
+    }
 }
