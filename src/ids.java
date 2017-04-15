@@ -75,6 +75,7 @@ public class ids {
 
         final PcapPacket packet = new PcapPacket(JMemory.POINTER);
         final Ip4 ip = new Ip4();
+        final Tcp tcp = new Tcp();
 
         // Iterate through all packets in the capture
         while (pcap.nextEx(packet) == Pcap.NEXT_EX_OK) {
@@ -85,8 +86,8 @@ public class ids {
                     if (hashmap.containsKey("proto") && hashmap.get("proto").get(0).toString().equals("tcp")) {
 
                         if (State.checkHost(packet,ip)) {
-                            if (State.checkHostPort(packet,ip)) {
-                                if (State.checkAtkPort(packet,ip)) {
+                            if (State.checkHostPort(packet,tcp)) {
+                                if (State.checkAtkPort(packet,tcp)) {
                                     if (State.checkAttacker(packet,ip)) {
                                         if (Stateless.checkPayload(packet,ip)){
                                             System.out.println("IDS alerted by policy " + hashmap.get("name").get(0) + ".");
@@ -106,8 +107,6 @@ public class ids {
 
     //methods used in either Stateful or Stateless
     public static class State {
-        static final Tcp tcp = new Tcp();
-        static final Udp udp = new Udp();
 
         //Check that the host matches the policy host
         private static boolean checkHost(PcapPacket packet, Ip4 ip) {
@@ -128,22 +127,32 @@ public class ids {
             return false;
         }
         //Check that the host port matches the policy host port
-        private static boolean checkHostPort(PcapPacket packet, Ip4 ip) {
+        private static boolean checkHostPort(PcapPacket packet, Tcp tcp) {
             if(hashmap.containsKey("host_port")) {
                 if (hashmap.get("host_port").get(0).toString().equals("any")) {
                     return true;
                 }
                 //compare host port to policy
+                if(packet.hasHeader(tcp)) {
+                    if (hashmap.get("host_port").get(0).toString().equals(tcp.destination())) {
+                        return true;
+                    }
+                }
             }
             return false;
         }
         //Check that the attacker port matches the policy attacker port
-        private static boolean checkAtkPort(PcapPacket packet, Ip4 ip) {
+        private static boolean checkAtkPort(PcapPacket packet, Tcp tcp) {
             if(hashmap.containsKey("attacker_port")) {
                 if (hashmap.get("attacker_port").get(0).toString().equals("any")) {
                     return true;
                 }
                 //compare attacker port to policy
+                if(packet.hasHeader(tcp)) {
+                    if (hashmap.get("attacker_port").get(0).toString().equals(tcp.destination())) {
+                        return true;
+                    }
+                }
             }
             return false;
         }
@@ -168,8 +177,6 @@ public class ids {
     }
 
     public static class Stateless {
-        Tcp tcp = new Tcp();
-        Udp udp = new Udp();
 
         private static boolean checkPayload(PcapPacket packet, Ip4 ip) {
             return false;
@@ -177,8 +184,6 @@ public class ids {
     }
 
     public static class Stateful {
-        Tcp tcp = new Tcp();
-        Udp udp = new Udp();
 
         private static boolean checkPayload(PcapPacket packet) {
             return false;
