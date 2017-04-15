@@ -9,6 +9,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.sun.xml.internal.ws.api.message.Packet;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.nio.JBuffer;
 import org.jnetpcap.nio.JMemory;
@@ -22,8 +23,9 @@ import org.jnetpcap.protocol.tcpip.Tcp;
 import org.jnetpcap.protocol.tcpip.Udp;
 
 public class ids {
+    static HashMap<String, ArrayList> hashmap = new HashMap<>();
     public static void main(String[] args) {
-        HashMap<String, ArrayList> hashmap = new HashMap<>();
+
         File file = new File(args[0]);
         if (file.isFile()) {
 
@@ -46,6 +48,7 @@ public class ids {
                 System.out.println("File not found");
 
             } catch (IOException ex) {
+                System.out.println("IOException");
             }
         } else {
             System.out.println("File not found");
@@ -65,27 +68,142 @@ public class ids {
             return;
         }
 
-        Tcp tcp = new Tcp();
-        Udp udp = new Udp();
         final PcapPacket packet = new PcapPacket(JMemory.POINTER);
-
-
 
         // Iterate through all packets in the capture
         while (pcap.nextEx(packet) == Pcap.NEXT_EX_OK) {
             // Check the packet headers
-            if (hashmap.containsKey("proto")) {
-                if (hashmap.get("proto").get(0).toString().equals("tcp")) {
+            if (hashmap.containsKey("type")) {
+                if (hashmap.get("type").get(0).toString().equals("stateless")) { //Using a stateless policy
 
-                } else {
+                    if (hashmap.containsKey("proto") && hashmap.get("proto").get(0).toString().equals("tcp")) {
+
+                        if (State.checkHost(packet)) {
+                            if (State.checkHostPort(packet)) {
+                                if (State.checkAtkPort(packet)) {
+                                    if (State.checkAttacker(packet)) {
+                                        if (Stateless.checkPayload(packet)){
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else { //Using a stateless policy
+
+
                 }
             }
+        }
+    }
 
-            //System.out.println(packet.toString());
-            //payload = packet.getPayload(payload);
+    //methods used in either Stateful or Stateless
+    public static class State {
+        Tcp tcp = new Tcp();
+        Udp udp = new Udp();
+
+        //Check that the host matches the policy host
+        private static boolean checkHost(PcapPacket packet) {
+            if(hashmap.containsKey("host")) {
+                if (hashmap.get("host").get(0).toString().equals("any")) {
+                    return true;
+                }
+                //get host ip of packet
+                //compare packet data to policy
+                if(hashmap.get("host").get(0).toString().equals("")){
+
+                }
+            }
+            return false;
+        }
+        //Check that the host port matches the policy host port
+        private static boolean checkHostPort(PcapPacket packet) {
+            if(hashmap.containsKey("host_port")) {
+                if (hashmap.get("host_port").get(0).toString().equals("any")) {
+                    return true;
+                }
+                //make data comparison
+            }
+            return false;
+        }
+        //Check that the attacker port matches the policy attacker port
+        private static boolean checkAtkPort(PcapPacket packet) {
+            if(hashmap.containsKey("attacker_port")) {
+                if (hashmap.get("attacker_port").get(0).toString().equals("any")) {
+                    return true;
+                }
+                //make data comparison
+            }
+            return false;
+        }
+        //Check that the attacker ip matches the policy attacker ip
+        private static boolean checkAttacker(PcapPacket packet) {
+            if(hashmap.containsKey("attacker")) {
+                if (hashmap.get("attacker").get(0).toString().equals("any")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    public static class Stateless {
+        Tcp tcp = new Tcp();
+        Udp udp = new Udp();
+
+        private static boolean checkPayload(PcapPacket packet) {
+            return false;
+        }
+    }
+
+    public static class Stateful {
+        Tcp tcp = new Tcp();
+        Udp udp = new Udp();
+
+        private static boolean checkPayload(PcapPacket packet) {
+            return false;
+        }
+
+    }
+
+    public static String convertHexToString(String hex) {
+
+        StringBuilder sb = new StringBuilder();
+        StringBuilder temp = new StringBuilder();
+
+        //49204c6f7665204a617661 split into two characters 49, 20, 4c...
+        for (int i = 0; i < hex.length() - 1; i += 2) {
+            //grab the hex in pairs
+            String output = hex.substring(i, (i + 2));
+            //convert hex to decimal
+            int decimal = Integer.parseInt(output, 16);
+            //convert the decimal to character
+            sb.append((char) decimal);
+            temp.append(decimal);
+        }
+        return sb.toString();
+    }
+
+    public static Boolean checkPayload(PcapPacket packet) {
+//        JBuffer storage = new JBuffer(JMemory.Type.POINTER);
+//        JBuffer payload = protocol.peerPayloadTo(storage);
+//        //System.out.println(payload.toHexdump());
+//        if (payload.size() > 0) {
+//            final byte[] data = payload.getByteArray(0, payload.size());
+//            String hexString = new BigInteger(data).toString(16);
+//            if (!hexString.equals("0")) {
+//                System.out.println(convertHexToString(hexString));
+//            }
+//        }
+        return false;
+    }
+}
+//System.out.println(packet.toString());
+//payload = packet.getPayload(payload);
 
 
-            //System.out.println(payload.toString());
+//System.out.println(payload.toString());
 
                  /*
                 // If the packet has the SYN flag set and not the ACK flag, we keep track of the source IP and the amount of packets sent
@@ -107,38 +225,5 @@ public class ids {
                         hashmap.get(FormatUtils.ip(ip.destination()))[1]++;
                     }
                 }*/
-        }
-    }
 
 
-    public static String convertHexToString(String hex) {
-
-        StringBuilder sb = new StringBuilder();
-        StringBuilder temp = new StringBuilder();
-
-        //49204c6f7665204a617661 split into two characters 49, 20, 4c...
-        for (int i = 0; i < hex.length() - 1; i += 2) {
-            //grab the hex in pairs
-            String output = hex.substring(i, (i + 2));
-            //convert hex to decimal
-            int decimal = Integer.parseInt(output, 16);
-            //convert the decimal to character
-            sb.append((char) decimal);
-            temp.append(decimal);
-        }
-        return sb.toString();
-    }
-
-    public static Boolean checkPayload(PcapPacket packet) {
-        JBuffer storage = new JBuffer(JMemory.Type.POINTER);
-        JBuffer payload = protocol.peerPayloadTo(storage);
-        //System.out.println(payload.toHexdump());
-        if (payload.size() > 0) {
-            final byte[] data = payload.getByteArray(0, payload.size());
-            String hexString = new BigInteger(data).toString(16);
-            if (!hexString.equals("0")) {
-                System.out.println(convertHexToString(hexString));
-            }
-        }
-    }
-}
