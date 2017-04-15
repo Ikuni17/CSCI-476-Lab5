@@ -30,6 +30,7 @@ import sun.security.x509.IPAddressName;
 
 public class ids {
     static HashMap<String, ArrayList> hashmap = new HashMap<>();
+
     public static void main(String[] args) {
 
         File file = new File(args[0]);
@@ -85,11 +86,11 @@ public class ids {
 
                     if (hashmap.containsKey("proto") && hashmap.get("proto").get(0).toString().equals("tcp")) {
 
-                        if (State.checkHost(packet,ip)) {
-                            if (State.checkHostPort(packet,tcp)) {
-                                if (State.checkAtkPort(packet,tcp)) {
-                                    if (State.checkAttacker(packet,ip)) {
-                                        if (Stateless.checkPayload(packet,ip)){
+                        if (State.checkHost(packet, ip)) {
+                            if (State.checkHostPort(packet, tcp)) {
+                                if (State.checkAtkPort(packet, tcp)) {
+                                    if (State.checkAttacker(packet, ip)) {
+                                        if (Stateless.checkPayload(packet, ip)) {
                                             System.out.println("IDS alerted by policy " + hashmap.get("name").get(0) + ".");
                                         }
                                     }
@@ -110,12 +111,12 @@ public class ids {
 
         //Check that the host matches the policy host
         private static boolean checkHost(PcapPacket packet, Ip4 ip) {
-            if(hashmap.containsKey("host")) {
+            if (hashmap.containsKey("host")) {
                 if (hashmap.get("host").get(0).toString().equals("any")) {
                     return true;
                 }
                 //get host ip of packet
-                if(packet.hasHeader(ip)) {
+                if (packet.hasHeader(ip)) {
                     String host = FormatUtils.ip(ip.source());
 
                     //compare packet data to policy
@@ -126,14 +127,15 @@ public class ids {
             }
             return false;
         }
+
         //Check that the host port matches the policy host port
         private static boolean checkHostPort(PcapPacket packet, Tcp tcp) {
-            if(hashmap.containsKey("host_port")) {
+            if (hashmap.containsKey("host_port")) {
                 if (hashmap.get("host_port").get(0).toString().equals("any")) {
                     return true;
                 }
                 //compare host port to policy
-                if(packet.hasHeader(tcp)) {
+                if (packet.hasHeader(tcp)) {
                     if (hashmap.get("host_port").get(0).toString().equals(tcp.destination())) {
                         return true;
                     }
@@ -141,14 +143,15 @@ public class ids {
             }
             return false;
         }
+
         //Check that the attacker port matches the policy attacker port
         private static boolean checkAtkPort(PcapPacket packet, Tcp tcp) {
-            if(hashmap.containsKey("attacker_port")) {
+            if (hashmap.containsKey("attacker_port")) {
                 if (hashmap.get("attacker_port").get(0).toString().equals("any")) {
                     return true;
                 }
                 //compare attacker port to policy
-                if(packet.hasHeader(tcp)) {
+                if (packet.hasHeader(tcp)) {
                     if (hashmap.get("attacker_port").get(0).toString().equals(tcp.destination())) {
                         return true;
                     }
@@ -156,14 +159,15 @@ public class ids {
             }
             return false;
         }
+
         //Check that the attacker ip matches the policy attacker ip
         private static boolean checkAttacker(PcapPacket packet, Ip4 ip) {
-            if(hashmap.containsKey("attacker")) {
+            if (hashmap.containsKey("attacker")) {
                 if (hashmap.get("attacker").get(0).toString().equals("any")) {
                     return true;
                 }
                 //get host ip of packet
-                if(packet.hasHeader(ip)) {
+                if (packet.hasHeader(ip)) {
                     String host = FormatUtils.ip(ip.destination());
 
                     //compare packet data to policy
