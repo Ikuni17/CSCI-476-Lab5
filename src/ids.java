@@ -18,14 +18,12 @@ import org.jnetpcap.protocol.network.Ip4;
 import org.jnetpcap.protocol.tcpip.Tcp;
 import org.jnetpcap.protocol.tcpip.Udp;
 
-//still need to compare host and attacker ports to policy
-//figure how to deal with policy4, where to_host is
-//stateful policy
-
-
 public class ids {
     // Hashmap to hold the values of the policy
     static HashMap<String, ArrayList> hashmap = new HashMap<>();
+    static int fromHostIndex = 0; //keeping track of the element being searched for in the arrays
+    static int toHostIndex = 0;
+    static boolean check = true; //whether to check from_host (true) or to_host (false)
 
     public static void main(String[] args) {
 
@@ -85,19 +83,21 @@ public class ids {
             if (hashmap.get("type").get(0).toString().equals("stateless")) {
                 // Iterate through all packets in the capture
                 while (pcap.nextEx(packet) == Pcap.NEXT_EX_OK) {
-                    if (checkHost(packet, ip)) {
+                    if (checkHost(packet, ip) || hashmap.containsKey("from_host")) {
                         if (checkAttacker(packet, ip)) {
                             if (checkPayload(packet)) {
                                 if (hashmap.get("proto").get(0).toString().equals("tcp")) {
                                     if (checkHostPort(packet, tcp)) {
                                         if (checkAtkPort(packet, tcp)) {
                                             System.out.println("IDS alerted by policy " + hashmap.get("name").get(0) + ".");
+                                            break;
                                         }
                                     }
                                 } else {
                                     if (checkHostPort(packet, udp)) {
                                         if (checkAtkPort(packet, udp)) {
                                             System.out.println("IDS alerted by policy " + hashmap.get("name").get(0) + ".");
+                                            break;
                                         }
                                     }
                                 }
@@ -116,6 +116,7 @@ public class ids {
                                 if (checkHostPort(packet, tcp)) {
                                     if (checkAtkPort(packet, tcp)) {
                                         System.out.println("IDS alerted by policy " + hashmap.get("name").get(0) + ".");
+                                        break;
                                     }
                                 }
                             }
@@ -140,6 +141,7 @@ public class ids {
             //Check that the packet has an IP header
             if (packet.hasHeader(ip)) {
                 // Compare the policy host IP to what the packet contains
+
                 if (hashmap.get("host").get(0).toString().equals(FormatUtils.ip(ip.source()))) {
                     return true;
                 }
@@ -240,6 +242,7 @@ public class ids {
     }
 
     private static boolean checkPayload(PcapPacket packet) {
+
         Payload payload = new Payload();
         if (hashmap.containsKey("to_host")) {
             if (hashmap.get("to_host").get(0).toString().equals("any")) {
@@ -252,10 +255,52 @@ public class ids {
                 //byte[] payloadContent = payload.getByteArray(0, payload.size());
                 //System.out.println(new String(payloadContent));
                 //System.out.println(payloadAsString);
-                Iterator iter = hashmap.get("to_host").iterator();
-                while (iter.hasNext()) {
-                    if (iter.next().toString().equals(payloadAsString)) {
+
+                if(hashmap.containsKey("from_host")) {
+                    //necessary to search for string
+                    payloadAsString = payloadAsString + "\n";
+
+                    //check if the sequence of "from host"/"to host" is found
+                    ArrayList fromHost = hashmap.get("from_host");
+                    ArrayList toHost = hashmap.get("to_host");
+
+                    //the arrays will be checked to find the strings in the right order
+                    // the search will reset if there is a failure
+                    if (check && fromHostIndex != fromHost.size()) {
+                        String line = fromHost.get(fromHostIndex).toString();
+
+                        //search for string in fromHost
+                        if(payloadAsString.matches(line)){
+
+                            fromHostIndex = ++fromHostIndex;
+                            check = !check;
+                        } else { //restart sequence search
+                            fromHostIndex = 0;
+                            toHostIndex = 0;
+                            check = true;
+                        }
+                    } else if (!check && toHostIndex != toHost.size()) {
+                        String line = toHost.get(toHostIndex).toString();
+
+                        //search for string in toHost
+                        if(payloadAsString.matches(line)){
+                            toHostIndex = ++toHostIndex;
+                            check = !check;
+                        } else { //restart sequence search
+                            fromHostIndex = 0;
+                            toHostIndex = 0;
+                            check = true;
+                        }
+                        //if there is no more sequence to search through then it has matched everything
+                    } else if(toHostIndex == toHost.size() && fromHostIndex == fromHost.size()) {
                         return true;
+                    }
+                } else {
+                    Iterator iter = hashmap.get("to_host").iterator();
+                    while (iter.hasNext()) {
+                        if (iter.next().toString().equals(payloadAsString)) {
+                            return true;
+                        }
                     }
                 }
             }
