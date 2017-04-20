@@ -244,6 +244,7 @@ public class ids {
     private static boolean checkPayload(PcapPacket packet) {
 
         Payload payload = new Payload();
+
         if (hashmap.containsKey("to_host")) {
             if (hashmap.get("to_host").get(0).toString().equals("any")) {
                 return true;
@@ -298,7 +299,8 @@ public class ids {
                 } else {
                     Iterator iter = hashmap.get("to_host").iterator();
                     while (iter.hasNext()) {
-                        if (iter.next().toString().equals(payloadAsString)) {
+                        //check if the to_host has the data
+                        if (payloadAsString.matches(iter.next().toString())){
                             return true;
                         }
                     }
